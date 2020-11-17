@@ -1484,7 +1484,7 @@ bool register_socket_transport(unique_fd s, std::string serial, int port, int lo
     return true;
 }
 
-#if ADB_HOST
+#if ADB_HOST || LEGACY_FFS
 atransport* find_transport(const char* serial) {
     atransport* result = nullptr;
 
