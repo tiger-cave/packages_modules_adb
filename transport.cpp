@@ -1484,6 +1484,30 @@ bool register_socket_transport(unique_fd s, std::string serial, int port, int lo
     return true;
 }
 
+#if ADB_HOST || LEGACY_FFS
+void register_usb_transport(usb_handle* usb, const char* serial, const char* devpath,
+                            unsigned writeable) {
+    atransport* t = new atransport(writeable ? kCsOffline : kCsNoPerm);
+
+    D("transport: %p init'ing for usb_handle %p (sn='%s')", t, usb, serial ? serial : "");
+    init_usb_transport(t, usb);
+    if (serial) {
+        t->serial = serial;
+    }
+
+    if (devpath) {
+        t->devpath = devpath;
+    }
+
+    {
+        std::lock_guard<std::recursive_mutex> lock(transport_lock);
+        pending_list.push_front(t);
+    }
+
+    register_transport(t);
+}
+#endif
+
 #if ADB_HOST
 atransport* find_transport(const char* serial) {
     atransport* result = nullptr;
@@ -1525,28 +1549,6 @@ void register_usb_transport(std::shared_ptr<Connection> connection, const char* 
 
     t->SetConnection(std::move(connection));
     t->type = kTransportUsb;
-
-    {
-        std::lock_guard<std::recursive_mutex> lock(transport_lock);
-        pending_list.push_front(t);
-    }
-
-    register_transport(t);
-}
-
-void register_usb_transport(usb_handle* usb, const char* serial, const char* devpath,
-                            unsigned writeable) {
-    atransport* t = new atransport(writeable ? kCsOffline : kCsNoPerm);
-
-    D("transport: %p init'ing for usb_handle %p (sn='%s')", t, usb, serial ? serial : "");
-    init_usb_transport(t, usb);
-    if (serial) {
-        t->serial = serial;
-    }
-
-    if (devpath) {
-        t->devpath = devpath;
-    }
 
     {
         std::lock_guard<std::recursive_mutex> lock(transport_lock);
